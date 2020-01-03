@@ -1,0 +1,219 @@
+---
+title: "Preparación de datos"
+subtitle: "Curso: Visualización de datos con R"
+author: "ixpantia"
+date: "11 de enero, 2020"
+always_allow_html: yes
+output:
+  html_document:
+    code_folding: hide
+    self_contained: true
+    keep_md: true
+    number_sections: yes
+    theme: spacelab
+    toc: yes
+    toc_float:
+      collapsed: false
+editor_options:
+  chunk_output_type: console
+---
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+options(scipen = 100, digits = 2)
+
+library(readxl)
+library(dplyr)
+library(stringr)
+library(kableExtra)
+
+```
+
+
+# Introducción y datos a usar
+
+Este reporte describe el proceso de creación del conjunto de datos a utilizar en el **Curso Profesional: Visualización de datos con R**. El curso se imparte como parte de las iniciativas de [Data Latam](https://datalata.com). Data Latam es una comunidad Latinoamericana de profesionales y académicos aplicando ciencia de datos en su día a día en la industria de datos en Latino América. En sus eventos, cursos y programas de extensión exploramos tecnologías, aprendemos sobre ciencia de datos, hablamos de tendencias y eventos relevantes de la industria, y compartimos novedades del sector.
+
+Si bien el curso se enfoca en los paquetes de R [ggplot](https://ggplot2.tidyverse.org/reference/ggplot.html) y [plotly](https://plot.ly/r/), que son útiles para temas de visualización, primero es necesario contar con un conjunto de datos lo suficientemente sofisticado para generar gráficos a partir de él. Dado que la audiencia para este curso es de mayoría costarricense, se optó por seleccionar datos asociados a Costa Rica. Se emplearán 2 fuentes de datos:
+
+- [Estadísticas policiales 2019](http://datosabiertospj.eastus.cloudapp.azure.com/dataset/estadisticas-policiales/resource/4bc273b0-da4c-4ee5-8246-862435377f74) disponibles en el [portal de datos abiertos](http://datosabiertospj.eastus.cloudapp.azure.com/) del Poder Judicial.
+- [Estadísticas demográficas. 2011 – 2016. Proyecciones nacionales. Proyecciones de población según provincia, cantón y distrito al 30 de junio de cada año](http://www.inec.go.cr/poblacion/estimaciones-y-proyecciones-de-poblacion)
+disponibles por parte del [Instituto Nacional de Estadísticas y Censos (INEC)](http://www.inec.go.cr/).
+
+El primer conjunto de datos tiene un conteo de sucesos atentidos por la policía por distrito y cantón en el 2019. Aunque es un conjunto de datos muy rico, no tiene variables continuas. Por ello, uniermos los datos del Poder Judicial con datos de población del lado de INEC. Este documento integra ambos conjuntos y los deja listos para ser usados en el curso.
+
+# Ingestión de los datos
+
+Antes de integrar los datos, descargamos los respectivos archivos y validamos que los leemos correctamente. Los archivos descargados se colocan dentro del folder `datos/`, el cual a su vez se incluye en el `.gitignore` para evitar que entre en el control de versiones.
+
+## Estadísticas policiales
+
+```{r}
+datos_judiciales <- read_excel("datos/PJCROD_POLICIALES_V1-2019.xls") %>% 
+  janitor::clean_names() %>% 
+  mutate(fecha = as.Date(fecha)) %>% 
+  mutate_at(vars(-fecha), ~str_to_title(.)) %>% 
+  mutate_at(vars(ends_with("delito"), edad), ~str_to_sentence(.)) %>% 
+  mutate_at(vars(canton, distrito), ~str_replace(., " De ", " de "))
+```
+
+Los datos del archivos `datos/PJCROD_POLICIALES_V1-2019.xls` se cargan con facilidad. Se aplican transformaciones básicas para limpiar nombres, convertir la fecha a tipo de datos de fecha, y cambiar los valores de las variables de sólo mayúsculas a fomrato título (ej., de ASALTO a Asalto). Esto último con el único fin de que los gráficos se vean mejor luego. Se obtienen datos de `r nrow(datos_judiciales)` delitos de `r n_distinct(datos_judiciales$delito)` 6 tipos de delitos distintos, a saber: `r paste0(unique(datos_judiciales$delito), collapse = ", ")`
+
+A continuación un resumen de lo que contiene este archivo:
+
+```{r}
+glimpse(datos_judiciales)
+```
+
+Queda para quien lo desee integrar tilders a los datos.
+
+# Proyecciones de población por cantón y distrito
+
+```{r}
+datos_poblacion <- read_excel("datos/repoblacev2011-2016-01.xls", skip = 6) %>% 
+  filter(!is.na(`2016`))
+```
+
+La carga de los datos de población es más compleja por cuanto hay filas que tienen estadísticas agregadas a nivel de país, provincia y cantón, mientras que lo que nos interesa es a nivel de distritos. Así se ven los datos:
+
+```{r}
+datos_poblacion %>% 
+  head(10) %>% 
+  kable(format.args = list(big.mark = ",", scientific = FALSE)) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+```
+
+Antes de proceder cambiamos un poco los nombres, dejando como ubicación `distrito` y antecediendo los años con una letra `a`. También quitamos las tildes de los nombres de lugares para poder empatar luego esta información con la del Poder Judicial.
+
+```{r}
+datos_poblacion <- datos_poblacion %>% 
+  rename(distrito = `Provincia, cantón y distrito`) %>% 
+  mutate(distrito = stringi::stri_trans_general(distrito, "Latin-ASCII")) %>% # Remueve tildes
+  rename_at(vars(-distrito), ~paste0("a", .))
+```
+
+Con un poco de pruebas, se descubre un mecanismo muy práctico para eliminar las filas con el país (Costa Rica) y cada una de las 7 provincias. Sólo estas 8 filas tienen una población proyectada para el 2016 con más de 350,000 cada una. Procedemos a sacarlas de los datos.
+
+```{r}
+datos_poblacion %>% 
+  filter(a2016 > 350000) %>% 
+  kable(format.args = list(big.mark = ",", scientific = FALSE)) %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
+
+datos_poblacion <- datos_poblacion %>% 
+  filter(a2016 <= 350000)
+```
+
+El conjunto de datos que queda inicia con la fila que suma la población de los distritos del cantón San José, que es el primer cantón de la primer provincia. Le siguen filas con los distritos de ese cantón. La estructura se mantiene: más para abajo aparece una fila con el segundo cantón, a la que le siguen los distritos de ese segundo cantón. A continuación implementamos un algoritmo que va barriendo las filas en orden. A la población de cada cantón le va restando la población de los cantones que le siguen, y cuando ese valor llega a cero, sabremos que estamos iniciando un siguiente cantón. Asi encontraremos todos los cantones. Anotamos el resultado en la variable `es_canton`.
+
+```{r}
+datos_poblacion <- mutate(datos_poblacion, es_canton = FALSE) # indicador de cantones
+suma_distritos <- 0
+
+for (i in 1:nrow(datos_poblacion)) {
+  
+  if (suma_distritos == 0) {
+    suma_distritos <- datos_poblacion$a2011[i]
+    datos_poblacion$es_canton[i] <- TRUE
+  } else {
+    suma_distritos <- suma_distritos - datos_poblacion$a2011[i]  
+  }
+
+}
+
+```
+
+Nos quedan `r length(which(datos_poblacion$es_canton))` cantones. Lo que sigue es transformar los datos tal que los nombres de los cantones aparezcan como una fila al lado del nombre de sus distritos.
+
+```{r}
+datos_poblacion <- datos_poblacion %>% 
+  mutate(canton = ifelse(es_canton, distrito, NA)) %>% # cuando es_canton, anota el nombre, sino queda NA
+  tidyr::fill(canton) %>% 
+  filter(!es_canton) %>% 
+  select(canton, everything(), -es_canton)
+```
+
+# Integración de datos
+
+Ahora que tenemos una columna para el cantón y otra para el distrito en cada conjunto de datos, procedemos a unirlos. Comenzamos con un primer `full_join` para identificar dónde no encajan los datos.
+
+```{r}
+datos_cr <- full_join(datos_judiciales, datos_poblacion,
+          by = c("canton", "distrito"))
+```
+
+Se detectan y corrigen errores como:
+
+- Escritura de Vasquez de Coronado en un lado y Vazques de Coronado en el otro. Ambas escrituras son aceptadas.
+- Aunque los datos del Poder Judicial venían en mayúsculas y sin tildes, sí traían la letra "Ñ". La quitamos.
+- Los datos de población traen un distrito Candelaria en Puriscal, cuando el nombre correcto es Candelarita.
+- El cantón de Aguirre en los datos del INEC cambió de nombre a Quepos en el 2015.
+- El nombre oficial de Agua Caliente de Cartago no es San Francisco, como se le conoce y como aparece en los datos judiciales.
+- Zarcero se llamó Alfaro Ruiz hasta el 2010.
+
+
+```{r}
+datos_judiciales <- datos_judiciales %>% 
+  mutate_at(vars(canton, distrito), ~stringi::stri_trans_general(., "Latin-ASCII"))  %>% 
+  mutate(distrito = ifelse(canton == "Golfito" & distrito == "Jimenez", "Puerto Jimenez", distrito),
+         distrito = ifelse(canton == "Cartago" & distrito == "San Francisco", "Aguacaliente", distrito),
+         distrito = str_replace(distrito, "Mata Platano", "Mata de Platano"),
+         distrito = str_replace(distrito, "Potrero  Grande", "Potrero Grande"),
+         distrito = str_replace(distrito, "Xiii", "XIII"))
+  
+
+datos_poblacion <- datos_poblacion %>% 
+  mutate(canton = str_replace(canton, "Vazquez", "Vasquez"),
+         canton = str_replace(canton, "Aguirre", "Quepos"),
+         canton = str_replace(canton, "Alfaro Ruiz", "Zarcero"),
+         canton = str_replace(canton, "Valverde Vega", "Sarchi"),
+         distrito = str_replace(distrito, "Corredores", "Corredor"),
+         distrito = str_replace(distrito, "Tejar", "El Tejar"),
+         distrito = str_replace(distrito, "Juntas", "Las Juntas"),
+         distrito = str_replace(distrito, "Trinidad", "La Trinidad"),
+         distrito = str_replace(distrito, "Valle  La Estrella", "Valle La Estrella"),
+         distrito = ifelse(canton == "Puriscal" & distrito == "Candelaria", "Candelarita", distrito),
+         distrito = ifelse(canton == "Alajuela" & distrito == "Garita", "La Garita", distrito),
+         distrito = ifelse(canton == "Cartago" & distrito == "San Francisco", "Aguacaliente", distrito),
+         distrito = ifelse(canton == "San Rafael" & distrito == "Angeles", "Los Angeles", distrito))
+
+datos_cr <- full_join(datos_judiciales, datos_poblacion,
+          by = c("canton", "distrito"))
+```
+
+A pesar del esfuerzo de limpieza hasta ahora, aún quedan algunos cantones y distritos por depurar en ambos conjuntos de datos que no empatan entre sí. A continuación se muestran los más populares pendientes por corregir que aparecen en los datos judiciales pero aún no los de población:
+
+```{r}
+datos_cr %>% 
+  filter(is.na(a2016)) %>% 
+  filter(distrito != "Desconocido") %>% 
+  select(provincia:distrito) %>%
+  group_by(provincia, canton, distrito) %>% 
+  tally(sort = TRUE, name = "sucesos") %>% 
+  head(20) %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))  
+```
+
+De manera similar, mostramos los cantones y distritos que aparecen en los datos de población para los que no se ha encontrado una correspondencia en los datos judiciales.
+
+```{r}
+datos_cr %>% 
+  filter(is.na(delito)) %>% 
+  select(canton, distrito) %>% 
+  arrange(canton, distrito) %>% 
+  kable() %>% 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed"))  
+```
+
+Las correcciones se pueden realizar mas no alterarán el aprendizaje sobre visualización que es el objetivo del curso. Más aún, el tener algo de inconsistencias es bueno para tener que aprender a lidiar con ellas.
+
+# Generación de archivo para trabajo
+
+El archivo resultante se guarda con el nombre `datos_cr`. El mismo tiene `r nrow(datos_cr)` filas.
+
+```{r}
+openxlsx::write.xlsx(datos_cr, file = "datos/datos_cr.xlsx")
+```
+
