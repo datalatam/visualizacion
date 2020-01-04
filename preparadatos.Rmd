@@ -160,6 +160,7 @@ datos_judiciales <- datos_judiciales %>%
          distrito = ifelse(canton == "Cartago" & distrito == "San Francisco", "Aguacaliente", distrito),
          distrito = str_replace(distrito, "Mata Platano", "Mata de Platano"),
          distrito = str_replace(distrito, "Potrero  Grande", "Potrero Grande"),
+         distrito = str_replace(distrito, "San Jose de La Mon.*", "San Jose de la Montana"),
          distrito = str_replace(distrito, "Xiii", "XIII"))
   
 
@@ -172,6 +173,7 @@ datos_poblacion <- datos_poblacion %>%
          distrito = str_replace(distrito, "Tejar", "El Tejar"),
          distrito = str_replace(distrito, "Juntas", "Las Juntas"),
          distrito = str_replace(distrito, "Trinidad", "La Trinidad"),
+         distrito = str_replace(distrito, "Rivera", "La Ribera"),
          distrito = str_replace(distrito, "Valle  La Estrella", "Valle La Estrella"),
          distrito = ifelse(canton == "Puriscal" & distrito == "Candelaria", "Candelarita", distrito),
          distrito = ifelse(canton == "Alajuela" & distrito == "Garita", "La Garita", distrito),
@@ -187,7 +189,6 @@ A pesar del esfuerzo de limpieza hasta ahora, aún quedan algunos cantones y dis
 ```{r}
 datos_cr %>% 
   filter(is.na(pob2016)) %>% 
-  filter(distrito != "Desconocido") %>% 
   select(provincia:distrito) %>%
   group_by(provincia, canton, distrito) %>% 
   tally(sort = TRUE, name = "sucesos") %>% 
@@ -207,7 +208,13 @@ datos_cr %>%
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))  
 ```
 
-Las correcciones se pueden realizar mas no alterarán el aprendizaje sobre visualización que es el objetivo del curso. Más aún, el tener algo de inconsistencias es bueno para tener que aprender a lidiar con ellas.
+Las correcciones se pueden realizar mas no alterarán el aprendizaje sobre visualización que es el objetivo del curso. Más aún, el tener algo de inconsistencias es bueno para tener que aprender a lidiar con ellas. Sin embargo, como el foco de este ejercicio es delitos (y no población), vamos a excluir de los datos las observaciones de problación que no tiene delitos. Es decir, las filas que vienen de los datos de población que no tienen una correspondencia en el de delitos.
+
+```{r}
+datos_cr <- datos_cr %>% 
+  filter(!is.na(delito))
+```
+
 
 # Generación de archivo para trabajo
 
@@ -215,8 +222,8 @@ Habiendo completado la integración, hacemos un breve proceso de ingeniería de 
 
 ```{r}
 datos_cr <- datos_cr %>% 
-  mutate(mes = str_pad(lubridate::month(fecha), 2, pad = "0"),
-         anyo_mes = paste0(lubridate::year(fecha), "_", mes),
+  mutate(mes = lubridate::month(fecha),
+         anyo_mes = paste0(lubridate::year(fecha), "_", str_pad(mes, 2, pad = "0")),
          ubicacion = paste0(distrito, " (", canton, ")")) %>% 
   select(delito, sub_delito, 
          anyo_mes, mes, fecha,
