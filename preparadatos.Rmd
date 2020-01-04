@@ -8,7 +8,6 @@ output:
   html_document:
     code_folding: hide
     self_contained: true
-    keep_md: true
     number_sections: yes
     theme: spacelab
     toc: yes
@@ -55,7 +54,8 @@ datos_judiciales <- read_excel("datos/PJCROD_POLICIALES_V1-2019.xls") %>%
   mutate(fecha = as.Date(fecha)) %>% 
   mutate_at(vars(-fecha), ~str_to_title(.)) %>% 
   mutate_at(vars(ends_with("delito"), edad), ~str_to_sentence(.)) %>% 
-  mutate_at(vars(canton, distrito), ~str_replace(., " De ", " de "))
+  mutate_at(vars(canton, distrito, sub_victima), ~str_replace(., " De ", " de ")) %>% 
+  mutate(sub_victima = str_replace(sub_victima, " O ", " o "))
 ```
 
 Los datos del archivos `datos/PJCROD_POLICIALES_V1-2019.xls` se cargan con facilidad. Se aplican transformaciones básicas para limpiar nombres, convertir la fecha a tipo de datos de fecha, y cambiar los valores de las variables de sólo mayúsculas a fomrato título (ej., de ASALTO a Asalto). Esto último con el único fin de que los gráficos se vean mejor luego. Se obtienen datos de `r nrow(datos_judiciales)` delitos de `r n_distinct(datos_judiciales$delito)` 6 tipos de delitos distintos, a saber: `r paste0(unique(datos_judiciales$delito), collapse = ", ")`
@@ -90,19 +90,19 @@ Antes de proceder cambiamos un poco los nombres, dejando como ubicación `distri
 datos_poblacion <- datos_poblacion %>% 
   rename(distrito = `Provincia, cantón y distrito`) %>% 
   mutate(distrito = stringi::stri_trans_general(distrito, "Latin-ASCII")) %>% # Remueve tildes
-  rename_at(vars(-distrito), ~paste0("a", .))
+  rename_at(vars(-distrito), ~paste0("pob", .))
 ```
 
 Con un poco de pruebas, se descubre un mecanismo muy práctico para eliminar las filas con el país (Costa Rica) y cada una de las 7 provincias. Sólo estas 8 filas tienen una población proyectada para el 2016 con más de 350,000 cada una. Procedemos a sacarlas de los datos.
 
 ```{r}
 datos_poblacion %>% 
-  filter(a2016 > 350000) %>% 
+  filter(pob2016 > 350000) %>% 
   kable(format.args = list(big.mark = ",", scientific = FALSE)) %>% 
   kable_styling(bootstrap_options = c("striped", "hover", "condensed"))
 
 datos_poblacion <- datos_poblacion %>% 
-  filter(a2016 <= 350000)
+  filter(pob2016 <= 350000)
 ```
 
 El conjunto de datos que queda inicia con la fila que suma la población de los distritos del cantón San José, que es el primer cantón de la primer provincia. Le siguen filas con los distritos de ese cantón. La estructura se mantiene: más para abajo aparece una fila con el segundo cantón, a la que le siguen los distritos de ese segundo cantón. A continuación implementamos un algoritmo que va barriendo las filas en orden. A la población de cada cantón le va restando la población de los cantones que le siguen, y cuando ese valor llega a cero, sabremos que estamos iniciando un siguiente cantón. Asi encontraremos todos los cantones. Anotamos el resultado en la variable `es_canton`.
@@ -114,10 +114,10 @@ suma_distritos <- 0
 for (i in 1:nrow(datos_poblacion)) {
   
   if (suma_distritos == 0) {
-    suma_distritos <- datos_poblacion$a2011[i]
+    suma_distritos <- datos_poblacion$pob2011[i]
     datos_poblacion$es_canton[i] <- TRUE
   } else {
-    suma_distritos <- suma_distritos - datos_poblacion$a2011[i]  
+    suma_distritos <- suma_distritos - datos_poblacion$pob2011[i]  
   }
 
 }
@@ -186,7 +186,7 @@ A pesar del esfuerzo de limpieza hasta ahora, aún quedan algunos cantones y dis
 
 ```{r}
 datos_cr %>% 
-  filter(is.na(a2016)) %>% 
+  filter(is.na(pob2016)) %>% 
   filter(distrito != "Desconocido") %>% 
   select(provincia:distrito) %>%
   group_by(provincia, canton, distrito) %>% 
@@ -210,6 +210,20 @@ datos_cr %>%
 Las correcciones se pueden realizar mas no alterarán el aprendizaje sobre visualización que es el objetivo del curso. Más aún, el tener algo de inconsistencias es bueno para tener que aprender a lidiar con ellas.
 
 # Generación de archivo para trabajo
+
+Habiendo completado la integración, hacemos un breve proceso de ingeniería de variables para contar con más dimensiones para analizar los datos eficazmente.
+
+```{r}
+datos_cr <- datos_cr %>% 
+  mutate(mes = str_pad(lubridate::month(fecha), 2, pad = "0"),
+         anyo_mes = paste0(lubridate::year(fecha), "_", mes),
+         ubicacion = paste0(distrito, " (", canton, ")")) %>% 
+  select(delito, sub_delito, 
+         anyo_mes, mes, fecha,
+         victima, sub_victima, edad, nacionalidad,
+         provincia, canton, distrito, ubicacion,
+         everything())
+```
 
 El archivo resultante se guarda con el nombre `datos_cr`. El mismo tiene `r nrow(datos_cr)` filas.
 
