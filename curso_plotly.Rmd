@@ -40,3 +40,83 @@ Dicho documento genera el archivo de Excel `datos_cr.xlsx`, el cual se carga a c
 datos_cr <- readxl::read_excel("datos/datos_cr.xlsx") %>% 
   mutate(fecha = as.Date(fecha))
 ```
+
+## Pruebas de gráficos:
+
+Tipo de delito por fecha
+
+```{r}
+# Primer paso
+ggplot(datos_cr, aes(x = fecha, fill =  delito)) + 
+  geom_bar()
+
+# Segundo paso
+ggplot(datos_cr, aes(x = fecha, fill =  delito)) + 
+  scale_x_date(date_labels = "%b-%Y", date_breaks = "1 month") +
+  geom_bar() 
+
+# Tercer paso
+datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  ggplot(aes(mes, fill = delito)) +
+  geom_bar() + 
+  theme_bw(base_size = 16)
+
+# Cuarto paso:
+datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  ggplot(aes(mes, fill = delito)) +
+  geom_bar() + 
+  scale_fill_viridis_d() + 
+  theme_minimal(base_size = 16)
+
+# Quinto paso:
+datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  ggplot(aes(mes, fill = delito)) +
+  geom_bar() + 
+  scale_fill_viridis_d() + 
+  xlab("Mes del año 2019") + ylab("Total de casos") +
+  theme_minimal(base_size = 16)
+
+# Sexto paso
+datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  ggplot(aes(mes, fill = delito)) +
+  geom_bar() + 
+  scale_fill_viridis_d() + 
+  xlab("Mes del año 2019") + ylab("Total de casos") +
+  labs(title = "Total de tipos de delitos en Costa Rica durante el 2019",
+       subtitle = "Datos obtenidos del Poder Judicial",
+       fill = "Tipo de delito") +
+  theme_minimal(base_size = 16) +
+  theme(legend.position = "bottom")
+
+## Septimo paso
+plot_1 <- datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  ggplot(aes(mes, fill = delito)) +
+  geom_bar() + 
+  scale_fill_viridis_d() + 
+  xlab("Mes del año 2019") + ylab("Total de casos") +
+  labs(title = "Total de tipos de delitos en Costa Rica durante el 2019",
+       subtitle = "Datos obtenidos del Poder Judicial",
+       fill = "Tipo de delito") +
+  theme_minimal(base_size = 16)
+
+ggplotly(plot_1)
+
+# Octavo paso:
+ggplotly(plot_1)
+
+```
+
+El  mismo gráfico pero construido con ggplotly directamente:
+
+```{r}
+
+```
+
+
+
+
