@@ -1,0 +1,42 @@
+---
+title: "Gráficas interactivas con plotly"
+author: "ixpantia"
+date: "11 de enero, 2020"
+always_allow_html: yes
+output:
+  html_document:
+    code_folding: hide
+    self_contained: true
+    number_sections: no
+    theme: spacelab
+    toc: yes
+    toc_float:
+      collapsed: false
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+options(scipen = 100, digits = 2)
+
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(plotly)
+```
+
+# Introducción
+
+Este documento contiene el código que se usará para la primera partes del **Curso Profesional: Visualización de datos con R**. En particular, el documento primero introduce la gramática de gráficos usada por el paquete `ggplot` y luego elabora en personalizaciones avanzadas de gráficos. El curso se imparte como parte de las iniciativas de [Data Latam](https://datalata.com). Data Latam es una comunidad Latinoamericana de profesionales y académicos aplicando ciencia de datos en su día a día en la industria de datos en Latino América. En sus eventos, cursos y programas de extensión exploramos tecnologías, aprendemos sobre ciencia de datos, hablamos de tendencias y eventos relevantes de la industria, y compartimos novedades del sector.
+
+## Datos para el curso
+
+Para el curso se hará uso de datos de delitos del Poder Judicial de Costa Rica así como proyecciones de población disponibles del Instituto Nacional de Estadística (INEC) de Costa Rica. La limpieza y procesamiento que se le dieron a los datos orignales para prepararlos para este curso se describe en el documentno de [Preparación de datos](https://github.com/datalatam/visualizacion/blob/master/preparadatos.Rmd).
+
+Dicho documento genera el archivo de Excel `datos_cr.xlsx`, el cual se carga a continuación.
+
+```{r ingerir_datos, include = FALSE}
+datos_cr <- readxl::read_excel("datos/datos_cr.xlsx") %>% 
+  mutate(fecha = as.Date(fecha))
+```
