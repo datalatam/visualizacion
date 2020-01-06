@@ -41,9 +41,25 @@ datos_cr <- readxl::read_excel("datos/datos_cr.xlsx") %>%
   mutate(fecha = as.Date(fecha))
 ```
 
-## Pruebas de gráficos:
+## Iniciando con plotly:
 
-Tipo de delito por fecha
+```{r}
+delitos_pob_ubic <- datos_cr %>% 
+  group_by(provincia, ubicacion, pob2016) %>% 
+  tally(name = "cantidad")
+
+plot_ly(delitos_pob_ubic, x = ~pob2016, y = ~cantidad)
+```
+
+## Gráfico de cajas (boxplot)
+```{r}
+
+```
+
+## Gráfico de barras
+
+A continuación, el proceso de construcción de un gráfico desde la prueba de
+concepto hasta pulirlo para que sea de comunicación:
 
 ```{r}
 # Primer paso
@@ -115,24 +131,29 @@ ggplotly(plot_1) %>%
 El  mismo gráfico pero construido con ggplotly directamente:
 
 ```{r}
-plot_ly(data = datos_cr,
-        x  = ~fecha,
-        y = "delito",
+# Paso 1
+delitos_conteo <- datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  count(mes, delito)
+
+# Paso 2
+plot_ly(data = delitos_conteo,
+        x  = ~mes,
+        y = ~n,
         type = "bar",
-        mode = "markers")
-```
+        color = ~delito)
 
-```{r}
-Animals <- c("giraffes", "orangutans", "monkeys")
-SF_Zoo <- c(20, 14, 23)
-LA_Zoo <- c(12, 18, 29)
-data <- data.frame(Animals, SF_Zoo, LA_Zoo)
-
-p <- plot_ly(data, x = ~Animals, y = ~SF_Zoo, type = 'bar', name = 'SF Zoo') %>%
-  add_trace(y = ~LA_Zoo, name = 'LA Zoo') %>%
+# Paso 3
+plot_ly(data = delitos_conteo,
+        x  = ~mes,
+        y = ~n,
+        type = "bar",
+        color = ~delito) %>% 
   layout(yaxis = list(title = 'Count'), barmode = 'stack')
-
-p
 ```
+
+
+
+
 
 
