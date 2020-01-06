@@ -41,3 +41,4 @@ vignettes/*.pdf
 *.md
 
 # Datos de trabajo
+ensayo_plotly.Rmd

@@ -102,21 +102,37 @@ plot_1 <- datos_cr %>%
   labs(title = "Total de tipos de delitos en Costa Rica durante el 2019",
        subtitle = "Datos obtenidos del Poder Judicial",
        fill = "Tipo de delito") +
-  theme_minimal(base_size = 16)
+  theme_minimal(base_size = 16) +
+  theme(legend.position = "bottom")
 
 ggplotly(plot_1)
 
 # Octavo paso:
-ggplotly(plot_1)
-
+ggplotly(plot_1) %>% 
+  config(displayModeBar = F)
 ```
 
 El  mismo gráfico pero construido con ggplotly directamente:
 
 ```{r}
-
+plot_ly(data = datos_cr,
+        x  = ~fecha,
+        y = "delito",
+        type = "bar",
+        mode = "markers")
 ```
 
+```{r}
+Animals <- c("giraffes", "orangutans", "monkeys")
+SF_Zoo <- c(20, 14, 23)
+LA_Zoo <- c(12, 18, 29)
+data <- data.frame(Animals, SF_Zoo, LA_Zoo)
 
+p <- plot_ly(data, x = ~Animals, y = ~SF_Zoo, type = 'bar', name = 'SF Zoo') %>%
+  add_trace(y = ~LA_Zoo, name = 'LA Zoo') %>%
+  layout(yaxis = list(title = 'Count'), barmode = 'stack')
+
+p
+```
 
 
