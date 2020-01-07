@@ -43,20 +43,71 @@ datos_cr <- readxl::read_excel("datos/datos_cr.xlsx") %>%
 
 ## Iniciando con plotly:
 
+### Scatterplot:
+
 ```{r}
 delitos_pob_ubic <- datos_cr %>% 
   group_by(provincia, ubicacion, pob2016) %>% 
   tally(name = "cantidad")
 
-plot_ly(delitos_pob_ubic, x = ~pob2016, y = ~cantidad)
+# Simple
+plot_ly(delitos_pob_ubic, 
+        x = ~pob2016,
+        y = ~cantidad, 
+        mode = "markers")
+
+# Con color
+plot_ly(delitos_pob_ubic, 
+        x = ~pob2016,
+        y = ~cantidad, 
+        mode = "markers",
+        color = ~provincia)
+
+# Con tamaño
+plot_ly(delitos_pob_ubic, 
+        x = ~pob2016,
+        y = ~cantidad, 
+        mode = "markers",
+        color = ~provincia,
+        size = ~pob2016)
+
+
 ```
 
-## Gráfico de cajas (boxplot)
 ```{r}
+# plot_ly(datos_cr,
+#         x = ~fecha,
+#         color = I("black")) %>% 
+#   add_lines(y = ~pob2016)
 
+plot_ly(economics, x = ~date, color = I("black")) %>%add_lines(y = ~uempmed) %>%add_lines(y = ~psavert, color = I("red"))
 ```
 
-## Gráfico de barras
+
+### Gráfico de cajas (boxplot) o histogramas
+
+```{r}
+# Histograma
+plot_ly(data = datos_cr,
+        x = ~ pob2016,
+        type = "histogram")
+
+# Boxplot
+plot_ly(data = delitos_pob_ubic,
+        x = ~provincia,
+        y = ~cantidad,
+        type = "box")
+
+plot_ly(data = delitos_pob_ubic,
+        y = ~cantidad,
+        color = ~provincia,
+        type = "box")
+```
+
+### Gráfico de barras
+
+
+## Plotly avanzado
 
 A continuación, el proceso de construcción de un gráfico desde la prueba de
 concepto hasta pulirlo para que sea de comunicación:
