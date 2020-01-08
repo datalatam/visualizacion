@@ -248,6 +248,25 @@ ggplotly(gg)
 ```
 
 
+```{r}
+delitos_pob_ubic <- datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>%
+  group_by(mes, provincia, pob2016) %>% 
+  tally(name = "cantidad") 
+
+total_delitos <- delitos_pob_ubic %>% 
+  group_by(mes, provincia) %>% 
+  tally(name = "total_delitos")
+
+prop_provincia <- left_join(delitos_pob_ubic, total_delitos,
+                            by = c("mes", "provincia")) %>% 
+  mutate(prop_delitos = (cantidad / total_delitos) * 100)
+
+gg <- ggplot(prop_provincia, aes(x = cantidad, y = pob2016, color = provincia)) +
+  geom_point(aes(alpha = 0.5, size = prop_delitos, frame = mes))
+
+ggplotly(gg)
+```
 
 
 
