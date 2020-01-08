@@ -1,3 +1,7 @@
+---
+output:
+  html_document: default
+---
 # Curso Profesional Visualización de datos con R
 
 **Material del curso profesional Visualización de datos con R**
@@ -29,7 +33,8 @@ https://www.rstudio.com/products/rstudio/download/#download
 ### **Que tienes los paquetes necesarios**
 Para que estés segur@ de tener todos los paquetes que vamos a utilizar lo mejor es que los instales de antemano. Con las siguientes instrucciones los puedes instalar todos:
 
-    install.packages(c("ggplot2", "dplyr", "readr", "plotly")) 
+    install.packages(c("ggplot2", "dplyr", "readr", "plotly", "janitor",
+                        "readxl", "scales", "stringr", "lubridate",)) 
 
 ## Organiza
-Este evento lo organiza [Data Latam](http://wwww.datalatam.com) en cooperación con [ixpantia](https://www.ixpantia.com). Data Latam es una comunidad Latinoamericana de profesionales y académicos aplicando ciencia de datos en su día a día en la industria de datos en Latino América. En sus eventos, cursos y programas de extensión exploramos tecnologías, aprendemos sobre ciencia de datos, hablamos de tendencias y eventos relevantes de la industria, y compartimos novedades del sector.
+Este evento lo organiza [Data Latam](http://wwww.datalatam.com) en cooperación con [ixpantia](https://www.ixpantia.com). Data Latam es una comunidad Latinoamericana de profesionales y académicos aplicando ciencia de datos en su día a día en la industria de datos en Latino América. En los eventos, cursos y programas de extensión exploramos tecnologías, aprendemos sobre ciencia de datos, hablamos de tendencias y eventos relevantes de la industria, y compartimos novedades del sector.
