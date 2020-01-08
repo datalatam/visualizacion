@@ -1,0 +1,263 @@
+---
+title: "Gráficas interactivas con plotly"
+author: "ixpantia"
+date: "11 de enero, 2020"
+always_allow_html: yes
+output:
+  html_document:
+    code_folding: hide
+    self_contained: true
+    number_sections: no
+    theme: spacelab
+    toc: yes
+    toc_float:
+      collapsed: false
+editor_options:
+  chunk_output_type: console
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
+options(scipen = 100, digits = 2)
+
+library(dplyr)
+library(ggplot2)
+library(lubridate)
+library(plotly)
+library(readxl)
+```
+
+# Introducción
+
+Este documento contiene el código que se usará para la primera partes del **Curso Profesional: Visualización de datos con R**. En particular, el documento primero introduce la gramática de gráficos usada por el paquete `ggplot` y luego elabora en personalizaciones avanzadas de gráficos. El curso se imparte como parte de las iniciativas de [Data Latam](https://datalata.com). Data Latam es una comunidad Latinoamericana de profesionales y académicos aplicando ciencia de datos en su día a día en la industria de datos en Latino América. En sus eventos, cursos y programas de extensión exploramos tecnologías, aprendemos sobre ciencia de datos, hablamos de tendencias y eventos relevantes de la industria, y compartimos novedades del sector.
+
+## **Datos para el curso**
+
+Para el curso se hará uso de datos de delitos del Poder Judicial de Costa Rica así como proyecciones de población disponibles del Instituto Nacional de Estadística (INEC) de Costa Rica. La limpieza y procesamiento que se le dieron a los datos orignales para prepararlos para este curso se describe en el documentno de [Preparación de datos](https://github.com/datalatam/visualizacion/blob/master/preparadatos.Rmd).
+
+Dicho documento genera el archivo de Excel `datos_cr.xlsx`, el cual se carga a continuación.
+
+```{r ingerir_datos, include = FALSE}
+datos_cr <- read_excel("datos/datos_cr.xlsx") %>% 
+  mutate(fecha = as.Date(fecha))
+```
+
+## **Iniciando con la interactividad de Plotly**
+
+A continuación, el proceso de construcción de un gráfico desde la prueba de
+concepto hasta pulirlo para que sea de comunicación:
+
+```{r repaso}
+# Primer paso
+ggplot(datos_cr, aes(x = fecha, fill =  delito)) + 
+  geom_bar()
+
+# Segundo paso
+ggplot(datos_cr, aes(x = fecha, fill =  delito)) + 
+  scale_x_date(date_labels = "%b-%Y", date_breaks = "1 month") +
+  geom_bar() 
+
+# Tercer paso
+datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  ggplot(aes(mes, fill = delito)) +
+  geom_bar() + 
+  theme_bw(base_size = 16)
+
+# Cuarto paso:
+datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  ggplot(aes(mes, fill = delito)) +
+  geom_bar() + 
+  scale_fill_viridis_d() + 
+  theme_minimal(base_size = 16)
+
+# Quinto paso:
+datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  ggplot(aes(mes, fill = delito)) +
+  geom_bar() + 
+  scale_fill_viridis_d() + 
+  xlab("Mes del año 2019") + ylab("Total de casos") +
+  theme_minimal(base_size = 16)
+
+# Sexto paso
+datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  ggplot(aes(mes, fill = delito)) +
+  geom_bar() + 
+  scale_fill_viridis_d() + 
+  xlab("Mes del año 2019") + ylab("Total de casos") +
+  labs(title = "Total de tipos de delitos en Costa Rica durante el 2019",
+       subtitle = "Datos obtenidos del Poder Judicial",
+       fill = "Tipo de delito") +
+  theme_minimal(base_size = 16) +
+  theme(legend.position = "bottom")
+
+## Septimo paso
+plot_1 <- datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  ggplot(aes(mes, fill = delito)) +
+  geom_bar() + 
+  scale_fill_viridis_d() + 
+  xlab("Mes del año 2019") + ylab("Total de casos") +
+  labs(title = "Total de tipos de delitos en Costa Rica durante el 2019",
+       subtitle = "Datos obtenidos del Poder Judicial",
+       fill = "Tipo de delito") +
+  theme_minimal(base_size = 16) +
+  theme(legend.position = "bottom")
+
+ggplotly(plot_1)
+
+# Octavo paso:
+ggplotly(plot_1) %>% 
+  config(displayModeBar = F)
+```
+
+El  mismo gráfico pero construido con ggplotly directamente:
+
+```{r ggplotly}
+# Paso 1
+delitos_conteo <- datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  count(mes, delito)
+
+# Paso 2
+plot_ly(data = delitos_conteo,
+        x  = ~mes,
+        y = ~n,
+        type = "bar",
+        color = ~delito)
+
+# Paso 3
+plot_ly(data = delitos_conteo,
+        x  = ~mes,
+        y = ~n,
+        type = "bar",
+        color = ~delito) %>% 
+  layout(yaxis = list(title = 'Count'), barmode = 'stack') %>%
+  layout(legend = list(orientation = 'h', y = -0.3))
+```
+
+
+## **Plotly desde el inicio**
+
+### Scatterplot:
+
+```{r scatterplot}
+delitos_pob_ubic <- datos_cr %>% 
+  group_by(provincia, ubicacion, pob2016) %>% 
+  tally(name = "cantidad")
+
+# Simple
+plot_ly(delitos_pob_ubic, 
+        x = ~pob2016,
+        y = ~cantidad, 
+        mode = "markers")
+
+# Con color
+plot_ly(delitos_pob_ubic, 
+        x = ~pob2016,
+        y = ~cantidad, 
+        mode = "markers",
+        color = ~provincia)
+
+# Con tamaño
+plot_ly(delitos_pob_ubic, 
+        x = ~pob2016,
+        y = ~cantidad, 
+        mode = "markers",
+        color = ~provincia,
+        size = ~pob2016)
+```
+
+```{r}
+# plot_ly(datos_cr,
+#         x = ~fecha,
+#         color = I("black")) %>% 
+#   add_lines(y = ~pob2016)
+
+# plot_ly(economics, x = ~date, color = I("black")) %>%add_lines(y = ~uempmed) %>%add_lines(y = ~psavert, color = I("red"))
+```
+
+### Gráfico de cajas (boxplot) o histogramas
+
+```{r grafico cajas}
+# Histograma
+plot_ly(data = datos_cr,
+        x = ~ pob2016,
+        type = "histogram")
+
+# Boxplot
+plot_ly(data = delitos_pob_ubic,
+        x = ~provincia,
+        y = ~cantidad,
+        type = "box")
+
+plot_ly(data = delitos_pob_ubic,
+        y = ~cantidad,
+        color = ~provincia,
+        type = "box")
+```
+
+## **Mejorando con ggplotly**
+
+### Texto de las etiquetas
+
+```{r etiquetas}
+glimpse(datos_cr)
+delitos_pob_ubic <- datos_cr %>% 
+  group_by(provincia, ubicacion, pob2016, delito) %>% 
+  tally(name = "cantidad")
+
+plot_ly(data = delitos_pob_ubic,
+        x = ~pob2016, 
+        y = ~cantidad,
+        color = ~provincia,
+        size = ~pob2016,
+        text = ~delito,
+        type = "scatter",
+        mode = "markers",
+        hovertemplate = paste(
+          "Tipo de delito: <b>%{text}</b><br><br>",
+          "Población: %{x}<br>"
+        )
+)
+```
+
+### Animaciones en un gráfico
+
+```{r animacion basico}
+delitos_conteo <- datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  count(provincia, mes, delito)
+
+gg <- ggplot(delitos_conteo, aes(x = mes, y = n, color = delito)) +
+  geom_point(aes(size = n, frame = mes, ids = provincia))
+
+ggplotly(gg)
+```
+
+
+```{r animacion complejo}
+delitos_pob_ubic <- datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>%
+  group_by(mes, provincia, pob2016) %>% 
+  tally(name = "cantidad") 
+
+total_delitos <- delitos_pob_ubic %>% 
+  group_by(mes, provincia) %>% 
+  tally(name = "total_delitos")
+
+prop_provincia <- left_join(delitos_pob_ubic, total_delitos,
+                            by = c("mes", "provincia")) %>% 
+  mutate(prop_delitos = (cantidad / total_delitos) * 100)
+
+gg <- ggplot(prop_provincia, aes(x = cantidad, y = pob2016, color = provincia)) +
+  geom_point(aes(alpha = 0.5, size = prop_delitos, frame = mes))
+
+ggplotly(gg)
+```
+
+
+
