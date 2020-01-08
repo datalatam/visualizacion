@@ -31,7 +31,7 @@ library(readxl)
 
 Este documento contiene el código que se usará para la primera partes del **Curso Profesional: Visualización de datos con R**. En particular, el documento primero introduce la gramática de gráficos usada por el paquete `ggplot` y luego elabora en personalizaciones avanzadas de gráficos. El curso se imparte como parte de las iniciativas de [Data Latam](https://datalata.com). Data Latam es una comunidad Latinoamericana de profesionales y académicos aplicando ciencia de datos en su día a día en la industria de datos en Latino América. En sus eventos, cursos y programas de extensión exploramos tecnologías, aprendemos sobre ciencia de datos, hablamos de tendencias y eventos relevantes de la industria, y compartimos novedades del sector.
 
-## Datos para el curso
+## **Datos para el curso**
 
 Para el curso se hará uso de datos de delitos del Poder Judicial de Costa Rica así como proyecciones de población disponibles del Instituto Nacional de Estadística (INEC) de Costa Rica. La limpieza y procesamiento que se le dieron a los datos orignales para prepararlos para este curso se describe en el documentno de [Preparación de datos](https://github.com/datalatam/visualizacion/blob/master/preparadatos.Rmd).
 
@@ -42,12 +42,12 @@ datos_cr <- read_excel("datos/datos_cr.xlsx") %>%
   mutate(fecha = as.Date(fecha))
 ```
 
-## Iniciando con la interactividad de Plotly
+## **Iniciando con la interactividad de Plotly**
 
 A continuación, el proceso de construcción de un gráfico desde la prueba de
 concepto hasta pulirlo para que sea de comunicación:
 
-```{r}
+```{r repaso}
 # Primer paso
 ggplot(datos_cr, aes(x = fecha, fill =  delito)) + 
   geom_bar()
@@ -116,7 +116,7 @@ ggplotly(plot_1) %>%
 
 El  mismo gráfico pero construido con ggplotly directamente:
 
-```{r}
+```{r ggplotly}
 # Paso 1
 delitos_conteo <- datos_cr %>% 
   mutate(mes = month(fecha, label = TRUE)) %>% 
@@ -140,11 +140,11 @@ plot_ly(data = delitos_conteo,
 ```
 
 
-## Plotly desde el inicio
+## **Plotly desde el inicio**
 
 ### Scatterplot:
 
-```{r}
+```{r scatterplot}
 delitos_pob_ubic <- datos_cr %>% 
   group_by(provincia, ubicacion, pob2016) %>% 
   tally(name = "cantidad")
@@ -182,7 +182,7 @@ plot_ly(delitos_pob_ubic,
 
 ### Gráfico de cajas (boxplot) o histogramas
 
-```{r}
+```{r grafico cajas}
 # Histograma
 plot_ly(data = datos_cr,
         x = ~ pob2016,
@@ -200,43 +200,34 @@ plot_ly(data = delitos_pob_ubic,
         type = "box")
 ```
 
-### Gráfico de barras
+## **Mejorando con ggplotly**
 
-```{r}
-d <- read.csv('https://raw.githubusercontent.com/plotly/datasets/master/job-automation-probability.csv')
+### Texto de las etiquetas
 
-p <- d %>% 
-  plot_ly(
-    type = 'scatter',
-    mode = 'markers',
-    x = ~prob,
-    y = ~Average.annual.wage,
-    marker = list(size = ~numbEmployed, sizeref = 4000, sizemode = 'area'),
-    color = ~education,
-    text = ~short.occupation,
-    hovertemplate = paste(
-      "<b>%{text}</b><br><br>",
-      "%{yaxis.title.text}: %{y:$,.0f}<br>",
-      "%{xaxis.title.text}: %{x:.0%}<br>",
-      "Number Employed: %{marker.size:,}",
-      "<extra></extra>"
-      )
-    ) %>%
-  layout(legend = list(orientation = 'h', y = -0.3))
-
-p
-```
-
-```{r}
+```{r etiquetas}
 glimpse(datos_cr)
-plot_ly(data = )
-```
+delitos_pob_ubic <- datos_cr %>% 
+  group_by(provincia, ubicacion, pob2016, delito) %>% 
+  tally(name = "cantidad")
 
-## Mejorando con ggplotly
+plot_ly(data = delitos_pob_ubic,
+        x = ~pob2016, 
+        y = ~cantidad,
+        color = ~provincia,
+        size = ~pob2016,
+        text = ~delito,
+        type = "scatter",
+        mode = "markers",
+        hovertemplate = paste(
+          "Tipo de delito: <b>%{text}</b><br><br>",
+          "Población: %{x}<br>"
+        )
+)
+```
 
 ### Animaciones en un gráfico
 
-```{r}
+```{r animacion basico}
 delitos_conteo <- datos_cr %>% 
   mutate(mes = month(fecha, label = TRUE)) %>% 
   count(provincia, mes, delito)
@@ -248,7 +239,7 @@ ggplotly(gg)
 ```
 
 
-```{r}
+```{r animacion complejo}
 delitos_pob_ubic <- datos_cr %>% 
   mutate(mes = month(fecha, label = TRUE)) %>%
   group_by(mes, provincia, pob2016) %>% 
