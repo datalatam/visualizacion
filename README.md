@@ -1,35 +1,34 @@
-# Curso Profesional Visualización de datos con R
 
-**Material del curso profesional Visualización de datos con R**
+<!-- README.md is generated from README.Rmd. Please edit that file -->
 
-Este repositorio contiene el material usado durante el curso. Todos los ejemplos
-así como la presentación están aquí contenidos. 
+# visualizacion
 
-## Preparación 
-No importa el sistema operativo que usas, siempre y cuando permita la instalación de una versión reciente de R y RStudio (Windows, OSX y Linux). Antes de comenzar con los ejemplos por favor verifica lo siguiente.
+<!-- badges: start -->
 
-### **Que tienes una versión de R actualizada** 
-Vamos a trabajar con la versión 3.6.0 Para verificar la versión que tienes instalada puedes correr en la consola:
+<!-- badges: end -->
 
-R.Version()$version.string
+The goal of visualizacion is to …
 
-La respuesta debería ser por lo menos (puede ser una versión más reciente):
+What is special about using `README.Rmd` instead of just `README.md`?
+You can include R chunks like so:
 
-    [1] "R version 3.6.2 (2019-12-12)"
+``` r
+summary(cars)
+#>      speed           dist       
+#>  Min.   : 4.0   Min.   :  2.00  
+#>  1st Qu.:12.0   1st Qu.: 26.00  
+#>  Median :15.0   Median : 36.00  
+#>  Mean   :15.4   Mean   : 42.98  
+#>  3rd Qu.:19.0   3rd Qu.: 56.00  
+#>  Max.   :25.0   Max.   :120.00
+```
 
-Si necesitas actualizar por favor visita la página correspondiente de r-project.org:
+You’ll still need to render `README.Rmd` regularly, to keep `README.md`
+up-to-date.
 
-https://cloud.r-project.org/
+You can also embed plots, for example:
 
-### **Que tienes una version de RStudio Actualizada**
-En RStudio busca la opción en el menú Help >About RStudio. Busca si tienes Versión 1.2.5.033 o mayor. Si es menor instala una versión nueva ya sea con Help > Check for Updates o visitando las páginas de RStudio para bajar una nueva versión compatible con tu sistema:
+![](README_files/figure-gfm/pressure-1.png)<!-- -->
 
-https://www.rstudio.com/products/rstudio/download/#download
-
-### **Que tienes los paquetes necesarios**
-Para que estés segur@ de tener todos los paquetes que vamos a utilizar lo mejor es que los instales de antemano. Con las siguientes instrucciones los puedes instalar todos:
-
-    install.packages(c("ggplot2", "dplyr", "readr", "plotly")) 
-
-## Organiza
-Este evento lo organiza [Data Latam](http://wwww.datalatam.com) en cooperación con [ixpantia](https://www.ixpantia.com). Data Latam es una comunidad Latinoamericana de profesionales y académicos aplicando ciencia de datos en su día a día en la industria de datos en Latino América. En sus eventos, cursos y programas de extensión exploramos tecnologías, aprendemos sobre ciencia de datos, hablamos de tendencias y eventos relevantes de la industria, y compartimos novedades del sector.
+In that case, don’t forget to commit and push the resulting figure
+files, so they display on GitHub\!
