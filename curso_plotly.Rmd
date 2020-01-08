@@ -135,7 +135,8 @@ plot_ly(data = delitos_conteo,
         y = ~n,
         type = "bar",
         color = ~delito) %>% 
-  layout(yaxis = list(title = 'Count'), barmode = 'stack')
+  layout(yaxis = list(title = 'Count'), barmode = 'stack') %>%
+  layout(legend = list(orientation = 'h', y = -0.3))
 ```
 
 
@@ -201,9 +202,50 @@ plot_ly(data = delitos_pob_ubic,
 
 ### Gráfico de barras
 
+```{r}
+d <- read.csv('https://raw.githubusercontent.com/plotly/datasets/master/job-automation-probability.csv')
 
+p <- d %>% 
+  plot_ly(
+    type = 'scatter',
+    mode = 'markers',
+    x = ~prob,
+    y = ~Average.annual.wage,
+    marker = list(size = ~numbEmployed, sizeref = 4000, sizemode = 'area'),
+    color = ~education,
+    text = ~short.occupation,
+    hovertemplate = paste(
+      "<b>%{text}</b><br><br>",
+      "%{yaxis.title.text}: %{y:$,.0f}<br>",
+      "%{xaxis.title.text}: %{x:.0%}<br>",
+      "Number Employed: %{marker.size:,}",
+      "<extra></extra>"
+      )
+    ) %>%
+  layout(legend = list(orientation = 'h', y = -0.3))
 
+p
+```
 
+```{r}
+glimpse(datos_cr)
+plot_ly(data = )
+```
+
+## Mejorando con ggplotly
+
+### Animaciones en un gráfico
+
+```{r}
+delitos_conteo <- datos_cr %>% 
+  mutate(mes = month(fecha, label = TRUE)) %>% 
+  count(provincia, mes, delito)
+
+gg <- ggplot(delitos_conteo, aes(x = mes, y = n, color = delito)) +
+  geom_point(aes(size = n, frame = mes, ids = provincia))
+
+ggplotly(gg)
+```
 
 
 
