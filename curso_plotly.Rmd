@@ -25,6 +25,8 @@ library(ggplot2)
 library(lubridate)
 library(plotly)
 library(readxl)
+library(viridis)
+library(listviewer)
 ```
 
 # Introducción
@@ -63,6 +65,8 @@ datos_cr <- read_excel("datos/datos_cr.xlsx") %>%
 
 A continuación, el proceso de construcción de un gráfico desde la prueba de
 concepto hasta pulirlo para que sea de comunicación:
+
+### Desde `ggplot()` a `ggplotly()`
 
 ```{r repaso}
 # Primer paso
@@ -110,7 +114,10 @@ datos_cr %>%
        fill = "Tipo de delito") +
   theme_minimal(base_size = 16) +
   theme(legend.position = "bottom")
+```
 
+### **Agregando interactividad con `ggplotly()`**
+```{r ggplotly, fig.width = 9}
 ## Septimo paso
 plot_1 <- datos_cr %>% 
   mutate(mes = month(fecha, label = TRUE)) %>% 
@@ -131,9 +138,12 @@ ggplotly(plot_1) %>%
   config(displayModeBar = F)
 ```
 
-El  mismo gráfico pero construido con ggplotly directamente:
+### **Construyendo el gráfico con `plot_ly()`**
 
-```{r ggplotly}
+En lugar de usar la función `ggplotly()`, construimos el gráfico directamente
+con la funcionalidad de `plot_ly()`
+
+```{r plotly, fig.width = 9}
 # Paso 1
 delitos_conteo <- datos_cr %>% 
   mutate(mes = month(fecha, label = TRUE)) %>% 
@@ -151,13 +161,16 @@ plot_ly(data = delitos_conteo,
         x  = ~mes,
         y = ~n,
         type = "bar",
-        color = ~delito) %>% 
+        color = ~delito,
+        colors = viridis_pal(option = "D")(3)) %>% 
   layout(yaxis = list(title = 'Count'), barmode = 'stack') %>%
-  layout(legend = list(orientation = 'h', y = -0.3))
+  layout(legend = list(orientation = 'h', y = -0.3)) 
 ```
 
-
 ## **Plotly desde el inicio**
+
+En este segmento revisamos los argumentos y pasos para construir gráficos 
+directamente con `plot_ly()`
 
 ### Scatterplot:
 
@@ -188,15 +201,6 @@ plot_ly(delitos_pob_ubic,
         size = ~pob2016)
 ```
 
-```{r}
-# plot_ly(datos_cr,
-#         x = ~fecha,
-#         color = I("black")) %>% 
-#   add_lines(y = ~pob2016)
-
-# plot_ly(economics, x = ~date, color = I("black")) %>%add_lines(y = ~uempmed) %>%add_lines(y = ~psavert, color = I("red"))
-```
-
 ### Gráfico de cajas (boxplot) o histogramas
 
 ```{r grafico cajas}
@@ -222,7 +226,6 @@ plot_ly(data = delitos_pob_ubic,
 ### Texto de las etiquetas
 
 ```{r etiquetas}
-glimpse(datos_cr)
 delitos_pob_ubic <- datos_cr %>% 
   group_by(provincia, ubicacion, pob2016, delito) %>% 
   tally(name = "cantidad")
@@ -242,7 +245,23 @@ plot_ly(data = delitos_pob_ubic,
 )
 ```
 
+Entendiendo las listas de json usadas con plotly
+
+```{r}
+p <- ggplot(mtcars, aes(x = wt, y = mpg)) +
+   geom_point() + geom_smooth()
+ggplotly(p)
+
+# plotly_json(p)
+
+style(p, hoverinfo = "none", traces = 1:2)
+```
+
+
+
 ### Animaciones en un gráfico
+
+#### Un gráfico básico para iniciar
 
 ```{r animacion basico}
 delitos_conteo <- datos_cr %>% 
@@ -255,6 +274,7 @@ gg <- ggplot(delitos_conteo, aes(x = mes, y = n, color = delito)) +
 ggplotly(gg)
 ```
 
+#### Un gráfico más elaborado
 
 ```{r animacion complejo}
 delitos_pob_ubic <- datos_cr %>% 
@@ -271,10 +291,41 @@ prop_provincia <- left_join(delitos_pob_ubic, total_delitos,
   mutate(prop_delitos = (cantidad / total_delitos) * 100)
 
 gg <- ggplot(prop_provincia, aes(x = cantidad, y = pob2016, color = provincia)) +
-  geom_point(aes(alpha = 0.5, size = prop_delitos, frame = mes))
+  geom_point(aes(size = prop_delitos, frame = mes), alpha = 0.7) +
+  scale_color_viridis_d() +
+  xlab("Cantidad de delitos") + ylab("Población en año 2016") +
+  labs(color = "Provincia", size = "Proporción delitos") +
+  theme_bw(base_size = 12)
 
 ggplotly(gg)
 ```
+
+#### Más opciones para la animación
+
+**Tiempo y tipo de la animación**
+```{r delay}
+base <- prop_provincia %>% 
+  plot_ly(x = ~cantidad, y = ~pob2016, size = ~prop_delitos,
+          text = ~provincia, hoverinfo = "text") %>% 
+  layout(xaxis = list(title = "Cantidad de delitos"),
+         yaxis = list(title = "Población en año 2016"))
+
+base %>% 
+  add_markers(color = ~provincia, frame = ~mes,
+              colors = viridis_pal(option = "D")(3)) %>% 
+  animation_opts(frame = 1000, easing = "bounce-in") # ver opciones del easing
+```
+
+**Botón y slider de la animación**
+```{r}
+base %>% 
+  add_markers(color = ~provincia, frame = ~mes, alpha = 0.7,
+              colors = viridis_pal(option = "D")(3)) %>% 
+  animation_opts(frame = 1000, easing = "linear") %>% 
+  animation_button(x = 1, xanchor = "bottom", y = 0.07, yanchor = "bottom") 
+```
+
+
 
 
 
