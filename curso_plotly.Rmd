@@ -164,7 +164,7 @@ plot_ly(data = delitos_conteo,
         color = ~delito,
         colors = viridis_pal(option = "D")(3)) %>% 
   layout(yaxis = list(title = 'Count'), barmode = 'stack') %>%
-  layout(legend = list(orientation = 'h', y = -0.3)) 
+  layout(legend = list(orientation = 'h', y = -0.3)) #TODO: Revisar el y 0.3
 ```
 
 ## **Plotly desde el inicio**
@@ -252,9 +252,9 @@ p <- ggplot(mtcars, aes(x = wt, y = mpg)) +
    geom_point() + geom_smooth()
 ggplotly(p)
 
-# plotly_json(p)
+plotly_json(p)
 
-style(p, hoverinfo = "none", traces = 1:2)
+style(p, hoverinfo = "none", traces = 2:3)
 ```
 
 
@@ -277,23 +277,28 @@ ggplotly(gg)
 #### Un gráfico más elaborado
 
 ```{r animacion complejo}
-delitos_pob_ubic <- datos_cr %>% 
+poblacion <- datos_cr %>% 
+  distinct(provincia, distrito, pob2016) %>% 
+  group_by(provincia) %>% 
+  summarise(
+    poblacion = sum(pob2016, na.rm = TRUE) / 1000
+  ) %>% 
+  filter(provincia != "Desconocido")
+
+resumen <- datos_cr %>% 
   mutate(mes = month(fecha, label = TRUE)) %>%
-  group_by(mes, provincia, pob2016) %>% 
-  tally(name = "cantidad") 
+  group_by(mes, provincia, delito, genero) %>% 
+  tally(name = "delitos_x_genero") %>%
+  group_by(mes, provincia, delito) %>% 
+  mutate(delitos_por_provincia = sum(delitos_x_genero),
+         prop_genero = delitos_x_genero / delitos_por_provincia) %>% 
+  filter(genero == "Mujer")
 
-total_delitos <- delitos_pob_ubic %>% 
-  group_by(mes, provincia) %>% 
-  tally(name = "total_delitos")
-
-prop_provincia <- left_join(delitos_pob_ubic, total_delitos,
-                            by = c("mes", "provincia")) %>% 
-  mutate(prop_delitos = (cantidad / total_delitos) * 100)
-
-gg <- ggplot(prop_provincia, aes(x = cantidad, y = pob2016, color = provincia)) +
-  geom_point(aes(size = prop_delitos, frame = mes), alpha = 0.7) +
+gg <- ggplot(resumen, aes(x = prop_genero, y = delitos_por_provincia,
+                          color = provincia)) +
+  geom_point(aes(frame = mes, ids = provincia)) +
   scale_color_viridis_d() +
-  xlab("Cantidad de delitos") + ylab("Población en año 2016") +
+  xlab("Proporción del género") + ylab("Delitos por provincia") +
   labs(color = "Provincia", size = "Proporción delitos") +
   theme_bw(base_size = 12)
 
@@ -304,11 +309,11 @@ ggplotly(gg)
 
 **Tiempo y tipo de la animación**
 ```{r delay}
-base <- prop_provincia %>% 
-  plot_ly(x = ~cantidad, y = ~pob2016, size = ~prop_delitos,
+base <- resumen %>% 
+  plot_ly(x = ~prop_genero, y = ~delitos_por_provincia,
           text = ~provincia, hoverinfo = "text") %>% 
-  layout(xaxis = list(title = "Cantidad de delitos"),
-         yaxis = list(title = "Población en año 2016"))
+  layout(xaxis = list(title = "Proporción del género"),
+         yaxis = list(title = "Delitos por provincia"))
 
 base %>% 
   add_markers(color = ~provincia, frame = ~mes,
@@ -324,6 +329,7 @@ base %>%
   animation_opts(frame = 1000, easing = "linear") %>% 
   animation_button(x = 1, xanchor = "bottom", y = 0.07, yanchor = "bottom") 
 ```
+
 
 
 
