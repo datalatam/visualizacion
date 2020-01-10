@@ -182,14 +182,12 @@ delitos_pob_ubic <- datos_cr %>%
 # Simple
 plot_ly(delitos_pob_ubic, 
         x = ~pob2016,
-        y = ~cantidad, 
-        mode = "markers")
+        y = ~cantidad)
 
 # Con color
 plot_ly(delitos_pob_ubic, 
         x = ~pob2016,
-        y = ~cantidad, 
-        mode = "markers",
+        y = ~cantidad,
         color = ~provincia)
 
 # Con tamaño
@@ -201,12 +199,22 @@ plot_ly(delitos_pob_ubic,
         size = ~pob2016)
 ```
 
-### Gráfico de cajas (boxplot) o histogramas
+### Gráfico de cajas (boxplot) histogramas y otras distribuciones
 
 ```{r grafico cajas}
+# Multiples distribuciones
+plot_ly(datos_cr, x = ~delito, color = ~provincia) %>%
+  add_histogram()
+
 # Histograma
 plot_ly(data = datos_cr,
         x = ~ pob2016,
+        type = "histogram")
+
+## Agregando provincias
+plot_ly(data = datos_cr,
+        x = ~ pob2016,
+        color = ~provincia,
         type = "histogram")
 
 # Boxplot
@@ -234,12 +242,12 @@ plot_ly(data = delitos_pob_ubic,
         x = ~pob2016, 
         y = ~cantidad,
         color = ~provincia,
-        size = ~pob2016,
+        # size = ~pob2016,
         text = ~delito,
         type = "scatter",
         mode = "markers",
         hovertemplate = paste(
-          "Tipo de delito: <b>%{text}</b><br><br>",
+          "Tipo de delito: <b>%{text}</b><br>",
           "Población: %{x}<br>"
         )
 )
@@ -248,7 +256,7 @@ plot_ly(data = delitos_pob_ubic,
 Entendiendo las listas de json usadas con plotly
 
 ```{r}
-p <- ggplot(mtcars, aes(x = wt, y = mpg)) +
+p <- ggplot(delitos_pob_ubic, aes(x = pob2016, y = cantidad)) +
    geom_point() + geom_smooth()
 ggplotly(p)
 
@@ -257,6 +265,16 @@ ggplotly(p)
 style(p, hoverinfo = "none", traces = 2:3)
 ```
 
+### Varios gráficos
+
+```{r}
+p <- plot_ly(data = delitos_pob_ubic, x = ~pob2016, y = ~cantidad, alpha = 0.3)
+
+subplot(
+  add_markers(p, size = ~cantidad, name = "Cantidad de delitos"),
+  add_markers(p, size = ~pob2016, name = "Población")
+)
+```
 
 
 ### Animaciones en un gráfico
