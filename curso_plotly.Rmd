@@ -252,7 +252,7 @@ p <- ggplot(mtcars, aes(x = wt, y = mpg)) +
    geom_point() + geom_smooth()
 ggplotly(p)
 
-plotly_json(p)
+# plotly_json(p)
 
 style(p, hoverinfo = "none", traces = 2:3)
 ```
@@ -278,6 +278,7 @@ ggplotly(gg)
 
 ```{r animacion complejo}
 poblacion <- datos_cr %>% 
+  filter(!is.na(provincia)) %>% 
   distinct(provincia, distrito, pob2016) %>% 
   group_by(provincia) %>% 
   summarise(
@@ -286,19 +287,22 @@ poblacion <- datos_cr %>%
   filter(provincia != "Desconocido")
 
 resumen <- datos_cr %>% 
+  filter(!is.na(provincia)) %>% 
   mutate(mes = month(fecha, label = TRUE)) %>%
   group_by(mes, provincia, delito, genero) %>% 
-  tally(name = "delitos_x_genero") %>%
+  tally(name = "delitos_por_genero") %>%
   group_by(mes, provincia, delito) %>% 
-  mutate(delitos_por_provincia = sum(delitos_x_genero),
-         prop_genero = delitos_x_genero / delitos_por_provincia) %>% 
-  filter(genero == "Mujer")
+  mutate(delitos_por_provincia = sum(delitos_por_genero),
+         prop_genero = delitos_por_genero / delitos_por_provincia) %>% 
+  filter(genero == "Mujer") %>%
+  filter(provincia != "Desconocido")
+
 
 gg <- ggplot(resumen, aes(x = prop_genero, y = delitos_por_provincia,
-                          color = provincia)) +
+                          color = provincia, shape = delito)) +
   geom_point(aes(frame = mes, ids = provincia)) +
   scale_color_viridis_d() +
-  xlab("Proporción del género") + ylab("Delitos por provincia") +
+  xlab("Proporción delitos hacia Género femenino") + ylab("Delitos por provincia") +
   labs(color = "Provincia", size = "Proporción delitos") +
   theme_bw(base_size = 12)
 
