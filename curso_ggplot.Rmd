@@ -22,9 +22,13 @@ editor_options:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 options(scipen = 100, digits = 2)
 
+library(readxl)
 library(dplyr)
 library(ggplot2)
 library(lubridate)
+library(stringr)
+library(scales)
+
 ```
 
 # Introducción
@@ -38,7 +42,7 @@ Para el curso se hará uso de datos de delitos del Poder Judicial de Costa Rica 
 Dicho documento genera el archivo de Excel `datos_cr.xlsx`, el cual se carga a continuación.
 
 ```{r ingerir_datos, include = FALSE}
-datos_cr <- readxl::read_excel("datos/datos_cr.xlsx") %>% 
+datos_cr <- read_excel("datos/datos_cr.xlsx") %>% 
   mutate(fecha = as.Date(fecha))
 ```
 
@@ -48,7 +52,7 @@ Es común que se requiere de alguna transformación de datos sencilla para acomo
 
 ```{r}
 delitos_pob_ubic <- datos_cr %>% 
-  group_by(provincia, ubicacion, pob2016) %>% 
+  group_by(provincia, distrito, ubicacion, pob2016) %>% 
   tally(name = "cantidad")
 ```
 
@@ -74,6 +78,17 @@ ggplot(data = delitos_pob_ubic, aes(x = pob2016, y = cantidad)) +
   geom_smooth()
 ```
 
+*4- Una capa más, un texto*
+```{r}
+ggplot(data = delitos_pob_ubic, aes(x = pob2016, y = cantidad)) +
+  geom_point() +
+  geom_smooth() +
+  geom_text(aes(label = ubicacion))
+  #geom_text(aes(label = ubicacion, hjust = -.1))
+```
+
+
+
 ## Tipos de gráficos según tipos de variables
 
 De acuerdo a las variables que tengamos a nuestra disposición y la combinación de estas para explicar algún fenómeno, así será el tipo de gráfico que debamos utilizar. A continuación mostramos algunas de las opciones más comunes de `ggplot`.
@@ -93,6 +108,7 @@ plot_1var_cont +
   geom_density()
 ```
 
+Histograma
 
 ```{r}
 plot_1var_cont +
@@ -110,10 +126,19 @@ delitos_pob_ubic %>%
 Esto es interesante, pero no estamos acá en San José para preocuparnos.
 
 ```{r}
-delitos_pob_ubic %>% 
-  mutate(cant_por_100_pax = cantidad / (pob2016 / 100)) %>% 
-  arrange(-cant_por_100_pax) %>% 
-  head(10)
+# Un micro demo de kable dedicado a los que no han visto R.
+# install.packages(kableExtra)
+# library(kableExtra)
+# delitos_pob_ubic %>% 
+#   ungroup() %>% 
+#   mutate(cant_por_100_pax = cantidad / (pob2016 / 100)) %>% 
+#   arrange(-cant_por_100_pax) %>% 
+#   select(-provincia, -distrito) %>% 
+#   head(10) %>% 
+#   kable(col.names = c("Ubicación", "Población (2016)", "Num. Delitos", "Delitos/100pax"),
+#         format.args = list(big.mark = ",")) %>%
+#   kable_styling(bootstrap_options = c("striped", "hover", "condensed")) %>% 
+#   row_spec(c(1, 2, 4, 5, 7), color = "red")
 ```
 
 
@@ -278,12 +303,13 @@ datos_cr %>%
   ggplot(aes(x = factor(mes), y = n, fill = provincia)) +
   geom_col() #  +
   #scale_fill_viridis_d()
+  #scale_fill_viridis_c() # no sirve por ser variable discreta
+  #scale_color_viridis_d() # no sirve pues aesthetic es fill, no color
   #scale_fill_viridis_d(end = 0.8)
   #scale_fill_viridis_d(end = 0.8, option = "C")
   #scale_fill_viridis_d(end = 0.8, alpha = 0.9)
   #scale_fill_brewer()
   #scale_fill_brewer(palette = "Dark2")
-
 ```
 
 ## Posición de las barras
@@ -443,12 +469,11 @@ datos_cr %>%
   labs(x = "Mes del año", y = "Cantidad de delitos", fill = "Provincia",
        title = "Delitos por mes en cada provincia",
        subtitle = "San José tiene la mayor cantidad de delitos.") # +
-  #scale_y_continuous(labels = scales::comma) 
-  #scale_y_continuous(labels = scales::comma, breaks = seq(from = 0, to = 2000, by = 200))
-  #scale_x_discrete(labels = c("Jul", "Ago", "Set", "Oct", "Nov", "Dic"))
+  #scale_y_continuous(labels = comma) 
+  #scale_y_continuous(labels = comma, breaks = seq(from = 0, to = 2000, by = 200))
 ```
 
-Para cerrar, hasta le podemos cambiar el tipo y tamaño de letra.
+¿Qué tal si cambiamos los números de los meses por nombres?
 
 ```{r}
 datos_cr %>% 
@@ -461,9 +486,74 @@ datos_cr %>%
   labs(x = "Mes del año", y = "Cantidad de delitos", fill = "Provincia",
        title = "Delitos por mes en cada provincia",
        subtitle = "San José tiene la mayor cantidad de delitos.") +
-  scale_y_continuous(labels = scales::comma, breaks = seq(from = 0, to = 2000, by = 200)) +
+  scale_y_continuous(labels = comma) +
+  scale_x_discrete(labels = c("Jul", "Ago", "Set", "Oct", "Nov", "Dic"))
+
+datos_cr %>% 
+  filter(mes > 6) %>% 
+  group_by(mes, provincia) %>% 
+  tally() %>% 
+  ggplot(aes(x = factor(mes, labels = c("Jul", "Ago", "Set", "Oct", "Nov", "Dic")),
+             y = n,
+             fill = reorder(provincia, -n))) +
+  geom_col(position = "dodge")  +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(x = "Mes del año", y = "Cantidad de delitos", fill = "Provincia",
+       title = "Delitos por mes en cada provincia",
+       subtitle = "San José tiene la mayor cantidad de delitos.") +
+  scale_y_continuous(labels = comma) 
+
+datos_cr %>% 
+  filter(mes > 6) %>% 
+  group_by(mes, provincia) %>% 
+  tally() %>% 
+  ggplot(aes(x = month(mes, label = TRUE, abbr = FALSE, locale = "es_ES"),
+             y = n,
+             fill = reorder(provincia, -n))) +
+  geom_col(position = "dodge")  +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(x = "Mes del año", y = "Cantidad de delitos", fill = "Provincia",
+       title = "Delitos por mes en cada provincia",
+       subtitle = "San José tiene la mayor cantidad de delitos.") +
+  scale_y_continuous(labels = comma) 
+
+```
+
+Hasta le podemos cambiar el tipo y tamaño de letra.
+
+```{r}
+datos_cr %>% 
+  filter(mes > 6) %>% 
+  group_by(mes, provincia) %>% 
+  tally() %>% 
+  ggplot(aes(x = factor(mes), y = n, fill = reorder(provincia, -n))) +
+  geom_col(position = "dodge")  +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(x = "Mes del año", y = "Cantidad de delitos", fill = "Provincia",
+       title = "Delitos por mes en cada provincia",
+       subtitle = "San José tiene la mayor cantidad de delitos.") +
+  scale_y_continuous(labels = comma, breaks = seq(from = 0, to = 2000, by = 200)) +
   scale_x_discrete(labels = c("Jul", "Ago", "Set", "Oct", "Nov", "Dic")) +
-  theme(text = element_text(size=14, family = "Lato")) 
+  theme(text = element_text(size=14, family = "Lato"))
+```
+
+Ronny me dio un consejo sobre el fondo: En algunos casos se prefiere blanco.
+
+```{r}
+datos_cr %>% 
+  filter(mes > 6) %>% 
+  group_by(mes, provincia) %>% 
+  tally() %>% 
+  ggplot(aes(x = factor(mes), y = n, fill = reorder(provincia, -n))) +
+  geom_col(position = "dodge")  +
+  scale_fill_brewer(palette = "Dark2") +
+  labs(x = "Mes del año", y = "Cantidad de delitos", fill = "Provincia",
+       title = "Delitos por mes en cada provincia",
+       subtitle = "San José tiene la mayor cantidad de delitos.") +
+  scale_y_continuous(labels = comma, breaks = seq(from = 0, to = 2000, by = 200)) +
+  scale_x_discrete(labels = c("Jul", "Ago", "Set", "Oct", "Nov", "Dic")) +
+  #theme(text = element_text(size=14, family = "Lato")) +
+  theme_bw(base_size = 14, base_family = "Lato")
 ```
 
 ## Líneas para ver tendencias
@@ -483,6 +573,57 @@ datos_cr %>%
        title = "Delitos por mes en cada provincia",
        subtitle = "San José tiene la mayor cantidad de delitos.") 
 ```
+
+# Correlación de delitos y población
+
+## Atributos parametrizados
+
+Para demostrar el uso de capas habíamos iniciado con este gráfico. Se veía muy saturado.
+
+```{r}
+ggplot(data = delitos_pob_ubic, aes(x = pob2016, y = cantidad)) +
+  geom_point() +
+  geom_smooth() +
+  geom_text(aes(label = ubicacion, hjust = -.1))
+```
+
+Al final sólo nos interesa identificar a algunos cuantos distritos, los más problemáticos. Podemos hacer que la etiquete sólo aparezca para algunos cuantos.
+
+```{r}
+ggplot(data = delitos_pob_ubic, aes(x = pob2016, y = cantidad)) +
+  geom_point() +
+  geom_smooth(method = "lm") +
+  geom_text(aes(label = ifelse(cantidad > 1000, distrito, NA),
+                hjust = -.1))
+```
+
+Además podemos agregarle algo de colores. Esto también afecta a `geom_smooth`.
+
+```{r}
+ggplot(data = delitos_pob_ubic, 
+       aes(x = pob2016, y = cantidad, color = provincia)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point() +
+  geom_text(aes(label = ifelse(cantidad > 1000, distrito, NA),
+                hjust = -.1)) +
+  scale_color_brewer(palette = "Dark2") 
+```
+
+## Límites de las escalas
+
+No me gusta eso que que no pueda leer "Pavas". Podemos imponerle al gráfico los límites del plano (vean apartado de Zooming de la guía de referencia de `ggplot`)
+
+```{r}
+ggplot(data = delitos_pob_ubic, 
+       aes(x = pob2016, y = cantidad, color = provincia)) +
+  geom_smooth(method = "lm", se = FALSE) +
+  geom_point() +
+  geom_text(aes(label = ifelse(cantidad > 1000, distrito, NA),
+                hjust = -.1)) +
+  scale_color_brewer(palette = "Dark2") +
+  scale_x_continuous(limits = c(0, 100000))
+```
+
 
 # Delitos por provincia y tipo
 
@@ -560,7 +701,7 @@ datos_cr %>%
   filter(!is.na(provincia)) %>% # Quitamos 2 observaciones con provincia desconocida
   group_by(delito, provincia) %>% 
   tally() %>% 
-  ggplot(aes(x = stringr::str_wrap(delito, 10),
+  ggplot(aes(x = str_wrap(delito, 10),
              y = provincia)) +
   geom_point(aes(size = n)) +
   geom_text(aes(label = n,
@@ -578,7 +719,7 @@ datos_cr %>%
   group_by(delito, provincia) %>% 
   tally() %>% 
   mutate(costera = ifelse(provincia %in% c("Limon", "Guanacaste", "Puntarenas"), "Costera", "Sin costa")) %>% 
-  ggplot(aes(x = stringr::str_wrap(delito, 10),
+  ggplot(aes(x = str_wrap(delito, 10),
              y = provincia,
              color = costera)) +
   geom_point(aes(size = n)) +
@@ -588,5 +729,120 @@ datos_cr %>%
   labs(x = "Tipo de delito", y = "Provincia", 
        size = "Cantidad", color = "Costera",
        title = "Delitos por tipo y provincia")
+```
+
+# Más dimensones con paneles
+
+**Meta:** Nos vamos a enfocar de nuevo más en el contenido que en la estética. Queremos observar la proporción de delitos cometidos a mujeres en cada provincia por mes, y  observar cómo se compara cada provincia la estadística nacional ese mes.
+
+Hacemos un precálculo que calcula:
+
+1. El total delitos a nivel nacional por mes y por genero en cada mes.
+2. El total delitos a nivel provincias por mes y por genero en cada mes.
+3. La proporción de delitos cometidos a mujeres con base en los totales anteriores.
+
+```{r}
+datos_mujeres <- datos_cr %>% 
+  # Reduce complejidad de datos
+  filter(!is.na(provincia)) %>% 
+  select(provincia, mes, genero) %>% 
+  # Conteo nacional
+  group_by(mes) %>% 
+  mutate(total_nac = n()) %>% 
+  group_by(mes, genero) %>% 
+  mutate(total_nac_gen = n()) %>% 
+  # Conteo por provincia
+  group_by(mes, provincia) %>% 
+  mutate(total_prov = n()) %>% 
+  group_by(mes, provincia, genero) %>% 
+  mutate(total_prov_gen = n()) %>% 
+  # Cálculo de proporciones
+  filter(genero == "Mujer") %>% 
+  ungroup() %>% 
+  mutate(prop_muj_nac  = total_nac_gen  / total_nac,
+         prop_muj_prov = total_prov_gen / total_prov) %>% 
+  distinct()
+
+datos_mujeres
+```
+
+Procedemos a graficar la información. Comencemos con series de tiempo por provincia. Esto cuesta leerlo.
+
+```{r}
+datos_mujeres %>% 
+  ggplot(aes(x = factor(mes), y = prop_muj_prov)) +
+  geom_line(aes(group = provincia, color = provincia)) +
+  scale_color_brewer(palette = "Dark2") 
+```
+
+Antes de mejorarlo, sin embargo, agreguemos el promedio nacional que queríamos.
+
+```{r}
+datos_mujeres %>% 
+  ggplot(aes(x = factor(mes), y = prop_muj_prov)) +
+  geom_line(aes(group = provincia, color = provincia)) +
+  scale_color_brewer(palette = "Dark2") +
+  geom_point(aes(x = mes, y = prop_muj_nac))
+```
+
+¡Cuesta comparar cada mes de forma individual!
+
+## Paneles
+
+Queremos agrupar las barras de cada mes. Esto se hace con `facet_wrap`.
+
+```{r}
+datos_mujeres %>% 
+  ggplot(aes(x = provincia, y = prop_muj_prov)) +
+  geom_col() +
+  facet_wrap(~mes)
+```
+
+Vamos a mejorar esto un poco antes de agregar elementos. Primero, barras no es lo mejor para indicar un solo punto. Puntos representaría mejor que esto se trata de una estadística y no un conteo. También, conviene rotar las etiquetas.
+
+```{r}
+datos_mujeres %>% 
+  ggplot(aes(x = provincia, y = prop_muj_prov)) +
+  geom_point() +
+  facet_wrap(~mes) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+Agreguemos ahora el promedio nacional para cada mes. Lo podemos hace como una raya horizontal usando `geom_hline`.
+
+```{r}
+datos_mujeres %>% 
+  ggplot(aes(x = provincia, y = prop_muj_prov)) +
+  geom_point() +
+  geom_hline(aes(yintercept = prop_muj_nac)) +
+  facet_wrap(~mes) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+Ahora algo de estítica. Usemos colores por provincia, hagamos los puntos un poco más grandes, pongamos nombres para humanos....
+
+```{r}
+prop_muj_anual <- datos_cr %>% 
+  group_by(genero) %>% 
+  tally() %>% 
+  mutate(prop = n / sum(n)) %>% 
+  filter(genero == "Mujer") %>% 
+  pull(prop)
+
+datos_mujeres %>% 
+  mutate(provincia = factor(provincia, levels = orden_provincias),
+         mes = month(mes, label = TRUE, abbr = FALSE, locale = "es_ES")) %>% 
+  ggplot(aes(x = provincia, y = prop_muj_prov)) +
+  geom_point(aes(color = provincia, size = 2)) +
+  guides(size = "none") + # sin esto aparece una leyenda para size
+  scale_color_brewer(palette = "Dark2") +
+  geom_hline(aes(yintercept = prop_muj_nac)) +
+  geom_hline(aes(yintercept = prop_muj_anual), color = "red", size = 0.5, linetype = "dashed") +
+  facet_wrap(~mes) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_y_continuous(limits = c(0.3, 0.45)) +
+  labs(x = "Provincia", y = "Proporción de delitos a víctimas mujeres",
+       color = "Provincia", title = "¿En qué provincia en qué mes es mayor la proporción de delitos cometidos a mujeres?")
 ```
 
