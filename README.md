@@ -51,7 +51,8 @@ lo mejor es que los instales de antemano. Con las siguientes
 instrucciones los puedes instalar todos:
 
     install.packages(c("ggplot2", "dplyr", "readr", "plotly", "janitor",
-                        "readxl", "scales", "stringr", "lubridate",)) 
+                        "readxl", "scales", "stringr", "lubridate", "viridis",
+                        "listviewer")) 
 
 ## Organiza
 
