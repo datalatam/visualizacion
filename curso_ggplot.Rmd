@@ -730,3 +730,119 @@ datos_cr %>%
        size = "Cantidad", color = "Costera",
        title = "Delitos por tipo y provincia")
 ```
+
+# Más dimensones con paneles
+
+**Meta:** Nos vamos a enfocar de nuevo más en el contenido que en la estética. Queremos observar la proporción de delitos cometidos a mujeres en cada provincia por mes, y  observar cómo se compara cada provincia la estadística nacional ese mes.
+
+Hacemos un precálculo que calcula:
+
+1. El total delitos a nivel nacional por mes y por genero en cada mes.
+2. El total delitos a nivel provincias por mes y por genero en cada mes.
+3. La proporción de delitos cometidos a mujeres con base en los totales anteriores.
+
+```{r}
+datos_mujeres <- datos_cr %>% 
+  # Reduce complejidad de datos
+  filter(!is.na(provincia)) %>% 
+  select(provincia, mes, genero) %>% 
+  # Conteo nacional
+  group_by(mes) %>% 
+  mutate(total_nac = n()) %>% 
+  group_by(mes, genero) %>% 
+  mutate(total_nac_gen = n()) %>% 
+  # Conteo por provincia
+  group_by(mes, provincia) %>% 
+  mutate(total_prov = n()) %>% 
+  group_by(mes, provincia, genero) %>% 
+  mutate(total_prov_gen = n()) %>% 
+  # Cálculo de proporciones
+  filter(genero == "Mujer") %>% 
+  ungroup() %>% 
+  mutate(prop_muj_nac  = total_nac_gen  / total_nac,
+         prop_muj_prov = total_prov_gen / total_prov) %>% 
+  distinct()
+
+datos_mujeres
+```
+
+Procedemos a graficar la información. Comencemos con series de tiempo por provincia. Esto cuesta leerlo.
+
+```{r}
+datos_mujeres %>% 
+  ggplot(aes(x = factor(mes), y = prop_muj_prov)) +
+  geom_line(aes(group = provincia, color = provincia)) +
+  scale_color_brewer(palette = "Dark2") 
+```
+
+Antes de mejorarlo, sin embargo, agreguemos el promedio nacional que queríamos.
+
+```{r}
+datos_mujeres %>% 
+  ggplot(aes(x = factor(mes), y = prop_muj_prov)) +
+  geom_line(aes(group = provincia, color = provincia)) +
+  scale_color_brewer(palette = "Dark2") +
+  geom_point(aes(x = mes, y = prop_muj_nac))
+```
+
+¡Cuesta comparar cada mes de forma individual!
+
+## Paneles
+
+Queremos agrupar las barras de cada mes. Esto se hace con `facet_wrap`.
+
+```{r}
+datos_mujeres %>% 
+  ggplot(aes(x = provincia, y = prop_muj_prov)) +
+  geom_col() +
+  facet_wrap(~mes)
+```
+
+Vamos a mejorar esto un poco antes de agregar elementos. Primero, barras no es lo mejor para indicar un solo punto. Puntos representaría mejor que esto se trata de una estadística y no un conteo. También, conviene rotar las etiquetas.
+
+```{r}
+datos_mujeres %>% 
+  ggplot(aes(x = provincia, y = prop_muj_prov)) +
+  geom_point() +
+  facet_wrap(~mes) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+Agreguemos ahora el promedio nacional para cada mes. Lo podemos hace como una raya horizontal usando `geom_hline`.
+
+```{r}
+datos_mujeres %>% 
+  ggplot(aes(x = provincia, y = prop_muj_prov)) +
+  geom_point() +
+  geom_hline(aes(yintercept = prop_muj_nac)) +
+  facet_wrap(~mes) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+Ahora algo de estítica. Usemos colores por provincia, hagamos los puntos un poco más grandes, pongamos nombres para humanos....
+
+```{r}
+prop_muj_anual <- datos_cr %>% 
+  group_by(genero) %>% 
+  tally() %>% 
+  mutate(prop = n / sum(n)) %>% 
+  filter(genero == "Mujer") %>% 
+  pull(prop)
+
+datos_mujeres %>% 
+  mutate(provincia = factor(provincia, levels = orden_provincias),
+         mes = month(mes, label = TRUE, abbr = FALSE, locale = "es_ES")) %>% 
+  ggplot(aes(x = provincia, y = prop_muj_prov)) +
+  geom_point(aes(color = provincia, size = 2)) +
+  guides(size = "none") + # sin esto aparece una leyenda para size
+  scale_color_brewer(palette = "Dark2") +
+  geom_hline(aes(yintercept = prop_muj_nac)) +
+  geom_hline(aes(yintercept = prop_muj_anual), color = "red", size = 0.5, linetype = "dashed") +
+  facet_wrap(~mes) +
+  theme_bw() +
+  theme(axis.text.x = element_text(angle = 90)) +
+  scale_y_continuous(limits = c(0.3, 0.45)) +
+  labs(x = "Provincia", y = "Proporción de delitos a víctimas mujeres",
+       color = "Provincia", title = "¿En qué provincia en qué mes es mayor la proporción de delitos cometidos a mujeres?")
+```
+
