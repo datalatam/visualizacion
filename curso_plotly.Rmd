@@ -61,6 +61,7 @@ datos_cr <- read_excel("datos/datos_cr.xlsx") %>%
   mutate(fecha = as.Date(fecha))
 ```
 
+
 ## **Iniciando con la interactividad de Plotly**
 
 A continuación, el proceso de construcción de un gráfico desde la prueba de
@@ -162,9 +163,27 @@ plot_ly(data = delitos_conteo,
         y = ~n,
         type = "bar",
         color = ~delito,
-        colors = viridis_pal(option = "D")(3)) %>% 
-  layout(yaxis = list(title = 'Count'), barmode = 'stack') %>%
+        colors = viridis_pal(option = "D")(2)) %>% 
+  layout(yaxis = list(title = 'Count'), barmode = 'stack') %>% # Buscar ayuda del layout
   layout(legend = list(orientation = 'h', y = -0.3)) #TODO: Revisar el y 0.3
+```
+
+# Anidacion
+```{r, fig.width = 9}
+t <- list(
+  family = "Raleway",
+  size = 18,
+  color = 'red')
+
+plot_ly(data = delitos_conteo,
+        x  = ~mes,
+        y = ~n,
+        type = "bar",
+        color = ~delito,
+        colors = viridis_pal(option = "D")(3)) %>%
+  layout(yaxis = list(title = 'Count'), barmode = 'stack') %>%
+  layout(legend = list(orientation = 'h', y = -0.3)) %>%
+  layout(title = "Ejemplo", font = t)
 ```
 
 ## **Plotly desde el inicio**
@@ -184,11 +203,22 @@ plot_ly(delitos_pob_ubic,
         x = ~pob2016,
         y = ~cantidad)
 
+delitos_pob_ubic %>% 
+  plot_ly() %>% 
+  add_markers(x = ~pob2016, y = ~cantidad)
+
+# plotly_json(x)
+
 # Con color
 plot_ly(delitos_pob_ubic, 
         x = ~pob2016,
         y = ~cantidad,
         color = ~provincia)
+
+plot_ly(delitos_pob_ubic, 
+        x = ~pob2016,
+        y = ~cantidad) %>% 
+  add_trace(color = ~provincia)
 
 # Con tamaño
 plot_ly(delitos_pob_ubic, 
@@ -253,6 +283,18 @@ plot_ly(data = delitos_pob_ubic,
 )
 ```
 
+```{r}
+plot_ly(data = delitos_pob_ubic,
+        x = ~pob2016, 
+        y = ~cantidad,
+        color = ~provincia,
+        type = "scatter",
+        mode = "markers",
+        hoverinfo = "text",
+        text = ~paste("</br> <b>Tipo de delito: </b>", delito,
+                      "</br> Provincia:", provincia))
+```
+
 Entendiendo las listas de json usadas con plotly
 
 ```{r}
@@ -273,7 +315,7 @@ p <- plot_ly(data = delitos_pob_ubic, x = ~pob2016, y = ~cantidad, alpha = 0.3)
 subplot(
   add_markers(p, size = ~cantidad, name = "Cantidad de delitos"),
   add_markers(p, size = ~pob2016, name = "Población")
-)
+) #Ir agregando mas con subplot
 ```
 
 
@@ -339,7 +381,7 @@ base <- resumen %>%
 
 base %>% 
   add_markers(color = ~provincia, frame = ~mes,
-              colors = viridis_pal(option = "D")(3)) %>% 
+              colors = viridis_pal(option = "D")(3)) %>% # agregar symbol 
   animation_opts(frame = 1000, easing = "bounce-in") # ver opciones del easing
 ```
 
